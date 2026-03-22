@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="invoice">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="version" type="xs:string" />
+        <xs:element name="invoiceMetadata">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="supplyType" type="xs:string" />
+              <xs:element name="documentType" type="xs:string" />
+              <xs:element name="invoiceNumber" type="xs:string" />
+              <xs:element name="invoiceDate" type="xs:string" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="seller" type="partyType" />
+        <xs:element name="buyer" type="partyType" />
+        <xs:element name="itemList">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="item" type="itemType" maxOccurs="unbounded" minOccurs="1" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="totals">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="assessableValue" type="xs:decimal" />
+              <xs:element name="cgstValue" type="xs:decimal" />
+              <xs:element name="sgstValue" type="xs:decimal" />
+              <xs:element name="igstValue" type="xs:decimal" />
+              <xs:element name="totalInvoiceValue" type="xs:decimal" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:complexType name="partyType">
+    <xs:sequence>
+      <xs:element name="gstin" type="xs:string" />
+      <xs:element name="legalName" type="xs:string" />
+      <xs:element name="tradeName" type="xs:string" minOccurs="0" />
+      <xs:element name="addressLine1" type="xs:string" />
+      <xs:element name="location" type="xs:string" />
+      <xs:element name="postalCode" type="xs:int" />
+      <xs:element name="stateCode" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="itemType">
+    <xs:sequence>
+      <xs:element name="serialNumber" type="xs:string" />
+      <xs:element name="description" type="xs:string" />
+      <xs:element name="hsnCode" type="xs:string" />
+      <xs:element name="isService" type="xs:string" />
+      <xs:element name="quantity" type="xs:decimal" />
+      <xs:element name="unitPrice" type="xs:decimal" />
+      <xs:element name="taxableAmount" type="xs:decimal" />
+      <xs:element name="taxDetails">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="gstRate" type="xs:decimal" />
+            <xs:element name="cgstAmount" type="xs:decimal" />
+            <xs:element name="sgstAmount" type="xs:decimal" />
+            <xs:element name="igstAmount" type="xs:decimal" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="totalAmount" type="xs:decimal" />
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>

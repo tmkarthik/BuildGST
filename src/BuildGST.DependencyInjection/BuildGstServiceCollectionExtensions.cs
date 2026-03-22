@@ -30,6 +30,7 @@ public static class BuildGstServiceCollectionExtensions
         services.AddSingleton<IOptions<GstApiProviderOptions>>(Options.Create(options));
         services.AddSingleton(retryOptions);
         services.AddSingleton<IGstinValidator, GstinValidator>();
+        services.AddSingleton<IInvoiceSchemaValidator, InvoiceSchemaValidator>();
         services.AddSingleton<IGstApiProviderResolver, GstApiProviderResolver>();
         services.AddTransient<IGstLookupService, GstLookupService>();
         services.AddTransient<IEInvoiceJsonGenerator, EInvoiceJsonGenerator>();

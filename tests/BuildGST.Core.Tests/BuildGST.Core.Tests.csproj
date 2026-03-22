@@ -22,6 +22,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\BuildGST.Core\BuildGST.Core.csproj" />
     <ProjectReference Include="..\..\src\BuildGST.Abstractions\BuildGST.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\BuildGST.Demo.Console\BuildGST.Demo.Console.csproj" />
   </ItemGroup>
 
 </Project>

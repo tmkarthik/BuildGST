@@ -23,8 +23,10 @@ public static class BuildGstServiceCollectionExtensions
 
         var options = new GstApiProviderOptions();
         configureOptions?.Invoke(options);
+        var retryOptions = new GstApiRetryOptions();
 
         services.AddSingleton(options);
+        services.AddSingleton(retryOptions);
         services.AddSingleton<IGstinValidator, GstinValidator>();
         services.AddSingleton<IGstApiProviderResolver, GstApiProviderResolver>();
         services.AddTransient<IGstLookupService, GstLookupService>();
@@ -32,7 +34,10 @@ public static class BuildGstServiceCollectionExtensions
         services.AddSingleton<IGstApiProvider>(serviceProvider =>
         {
             var httpClient = httpClientFactory?.Invoke(serviceProvider) ?? CreateDefaultHttpClient(serviceProvider.GetRequiredService<GstApiProviderOptions>());
-            return new ConfigurableHttpGstApiProvider(httpClient, serviceProvider.GetRequiredService<GstApiProviderOptions>());
+            return new ThirdPartyGstApiProvider(
+                httpClient,
+                serviceProvider.GetRequiredService<GstApiProviderOptions>(),
+                serviceProvider.GetRequiredService<GstApiRetryOptions>());
         });
 
         return services;

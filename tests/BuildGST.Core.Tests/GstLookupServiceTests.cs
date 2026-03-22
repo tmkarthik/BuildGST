@@ -51,14 +51,13 @@ public sealed class GstLookupServiceTests
 
         public string? LastSeenGstin { get; private set; }
 
-        public Task<GstLookupResponse> LookupAsync(GstLookupRequest request, CancellationToken cancellationToken = default)
+        public Task<GstTaxPayer> GetTaxPayerAsync(string gstin, CancellationToken cancellationToken)
         {
-            LastSeenGstin = request.Gstin;
-            return Task.FromResult(new GstLookupResponse
+            LastSeenGstin = gstin;
+            return Task.FromResult(new GstTaxPayer
             {
-                IsSuccess = true,
-                Gstin = request.Gstin,
-                ProviderName = Name
+                Gstin = gstin,
+                LegalName = "Fake Taxpayer"
             });
         }
     }

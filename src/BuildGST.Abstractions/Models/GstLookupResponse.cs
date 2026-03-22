@@ -16,7 +16,7 @@ public sealed class GstLookupResponse
 
     public string? RawPayload { get; set; }
 
-    public TaxpayerInfo? Taxpayer { get; set; }
+    public GstTaxPayer? Taxpayer { get; set; }
 
     public IDictionary<string, string> Metadata { get; set; } = new Dictionary<string, string>();
 }

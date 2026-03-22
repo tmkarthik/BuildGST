@@ -1,36 +1,74 @@
 using System;
 using System.Text.RegularExpressions;
 using BuildGST.Abstractions.Interfaces;
-using BuildGST.Abstractions.Models;
 
 namespace BuildGST.Core.Validation;
 
+/// <summary>
+/// Validates GSTIN values using format, state code, PAN structure, entity code, and checksum rules.
+/// </summary>
 public sealed class GstinValidator : IGstinValidator
 {
     private const string Charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    private static readonly Regex GstinRegex = new Regex("^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$", RegexOptions.Compiled);
-
-    public GstinValidationResult Validate(string gstin)
+    private static readonly Regex PanRegex = new Regex("^[A-Z]{5}[0-9]{4}[A-Z]$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex EntityCodeRegex = new Regex("^[1-9A-Z]$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex ChecksumCharacterRegex = new Regex("^[0-9A-Z]$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly string[] ValidStateCodes =
     {
-        var normalized = (gstin ?? string.Empty).Trim().ToUpperInvariant();
+        "01", "02", "03", "04", "05", "06", "07", "08", "09", "10",
+        "11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
+        "21", "22", "23", "24", "25", "26", "27", "28", "29", "30",
+        "31", "32", "33", "34", "35", "36", "37", "38", "97", "99"
+    };
+
+    /// <inheritdoc />
+    public bool IsValid(string gstin)
+    {
+        return string.IsNullOrEmpty(GetValidationError(gstin));
+    }
+
+    /// <inheritdoc />
+    public string GetValidationError(string gstin)
+    {
+        var normalized = Normalize(gstin);
 
         if (normalized.Length != 15)
         {
-            return new GstinValidationResult(false, normalized, "GSTIN must contain exactly 15 characters.");
+            return "GSTIN must contain exactly 15 characters.";
         }
 
-        if (!GstinRegex.IsMatch(normalized))
+        if (!IsValidStateCode(normalized.Substring(0, 2)))
         {
-            return new GstinValidationResult(false, normalized, "GSTIN format is invalid.");
+            return "GSTIN state code is invalid.";
+        }
+
+        if (!PanRegex.IsMatch(normalized.Substring(2, 10)))
+        {
+            return "GSTIN PAN structure is invalid.";
+        }
+
+        if (!EntityCodeRegex.IsMatch(normalized.Substring(12, 1)))
+        {
+            return "GSTIN entity code is invalid.";
+        }
+
+        if (normalized[13] != 'Z')
+        {
+            return "GSTIN 14th character must be 'Z'.";
+        }
+
+        if (!ChecksumCharacterRegex.IsMatch(normalized.Substring(14, 1)))
+        {
+            return "GSTIN checksum character is invalid.";
         }
 
         var expectedChecksum = CalculateChecksum(normalized.Substring(0, 14));
         if (normalized[14] != expectedChecksum)
         {
-            return new GstinValidationResult(false, normalized, "GSTIN checksum validation failed.");
+            return "GSTIN checksum validation failed.";
         }
 
-        return new GstinValidationResult(true, normalized);
+        return string.Empty;
     }
 
     internal static char CalculateChecksum(string input)
@@ -60,5 +98,23 @@ public sealed class GstinValidator : IGstinValidator
         var remainder = sum % Charset.Length;
         var checkCodePoint = (Charset.Length - remainder) % Charset.Length;
         return Charset[checkCodePoint];
+    }
+
+    internal static string Normalize(string gstin)
+    {
+        return (gstin ?? string.Empty).Trim().ToUpperInvariant();
+    }
+
+    private static bool IsValidStateCode(string stateCode)
+    {
+        for (var index = 0; index < ValidStateCodes.Length; index++)
+        {
+            if (string.Equals(ValidStateCodes[index], stateCode, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

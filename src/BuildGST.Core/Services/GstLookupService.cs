@@ -24,19 +24,22 @@ public sealed class GstLookupService : IGstLookupService
             throw new ArgumentNullException(nameof(request));
         }
 
-        var validationResult = _gstinValidator.Validate(request.Gstin);
-        if (!validationResult.IsValid)
+        var validationError = _gstinValidator.GetValidationError(request.Gstin);
+        if (!string.IsNullOrEmpty(validationError))
         {
-            throw new ArgumentException(validationResult.ErrorMessage, nameof(request));
+            throw new ArgumentException(validationError, nameof(request));
         }
 
-        request.Gstin = validationResult.NormalizedGstin;
+        request.Gstin = Validation.GstinValidator.Normalize(request.Gstin);
 
         var provider = _providerResolver.Resolve(request.ProviderName);
-        var response = await provider.LookupAsync(request, cancellationToken).ConfigureAwait(false);
-        response.Gstin = request.Gstin;
-        response.ProviderName = provider.Name;
-
-        return response;
+        var taxPayer = await provider.GetTaxPayerAsync(request.Gstin, cancellationToken).ConfigureAwait(false);
+        return new GstLookupResponse
+        {
+            Gstin = request.Gstin,
+            ProviderName = provider.Name,
+            IsSuccess = true,
+            Taxpayer = taxPayer
+        };
     }
 }

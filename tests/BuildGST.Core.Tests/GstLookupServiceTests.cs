@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using BuildGST.Abstractions.Exceptions;
 using BuildGST.Abstractions.Interfaces;
 using BuildGST.Abstractions.Models;
 using BuildGST.Core.Services;
@@ -14,32 +15,55 @@ namespace BuildGST.Core.Tests;
 public sealed class GstLookupServiceTests
 {
     [Fact]
-    public async Task LookupAsync_ShouldNormalizeGstinAndUseResolvedProvider()
+    public async Task LookupAsync_ShouldReturnTaxPayer_ForValidGstin()
     {
         var provider = new FakeProvider();
         var options = Options.Create(new GstApiProviderOptions { ProviderType = ProviderType.Government });
         var resolver = new GstApiProviderResolver(new StubServiceProvider(new[] { provider }), options);
-        var service = new GstLookupService(new GstinValidator(), resolver);
+        var logger = new FakeLookupLogger();
+        var service = new GstLookupService(new GstinValidator(), resolver, new[] { logger });
         var gstin = BuildValidGstin("27ABCDE1234F1Z");
 
-        var response = await service.LookupAsync(new GstLookupRequest { Gstin = gstin.ToLowerInvariant() });
+        var taxPayer = await service.LookupAsync(gstin.ToLowerInvariant());
 
-        Assert.True(response.IsSuccess);
-        Assert.Equal(gstin, response.Gstin);
-        Assert.Equal(provider.Name, response.ProviderName);
+        Assert.Equal(gstin, taxPayer.Gstin);
+        Assert.Equal("Fake Taxpayer", taxPayer.LegalName);
         Assert.Equal(gstin, provider.LastSeenGstin);
+        Assert.Equal(gstin, logger.StartedGstin);
+        Assert.Equal(provider.Name, logger.SuccessProviderName);
     }
 
     [Fact]
-    public async Task LookupAsync_ShouldRejectInvalidGstinBeforeCallingProvider()
+    public async Task LookupAsync_ShouldRejectInvalidGstin()
     {
         var provider = new FakeProvider();
         var options = Options.Create(new GstApiProviderOptions { ProviderType = ProviderType.Government });
         var resolver = new GstApiProviderResolver(new StubServiceProvider(new[] { provider }), options);
-        var service = new GstLookupService(new GstinValidator(), resolver);
+        var logger = new FakeLookupLogger();
+        var service = new GstLookupService(new GstinValidator(), resolver, new[] { logger });
 
-        await Assert.ThrowsAsync<ArgumentException>(() => service.LookupAsync(new GstLookupRequest { Gstin = "INVALID" }));
+        var exception = await Assert.ThrowsAsync<InvalidGstinException>(() => service.LookupAsync("INVALID"));
+
+        Assert.Equal("GSTIN must contain exactly 15 characters.", exception.Message);
         Assert.Null(provider.LastSeenGstin);
+        Assert.Equal("INVALID", logger.ValidationFailedGstin);
+    }
+
+    [Fact]
+    public async Task LookupAsync_ShouldWrapProviderFailure()
+    {
+        var provider = new ThrowingProvider();
+        var options = Options.Create(new GstApiProviderOptions { ProviderType = ProviderType.Government });
+        var resolver = new GstApiProviderResolver(new StubServiceProvider(new[] { provider }), options);
+        var logger = new FakeLookupLogger();
+        var service = new GstLookupService(new GstinValidator(), resolver, new[] { logger });
+        var gstin = BuildValidGstin("27ABCDE1234F1Z");
+
+        var exception = await Assert.ThrowsAsync<GstLookupFailedException>(() => service.LookupAsync(gstin));
+
+        Assert.Equal(gstin, exception.Gstin);
+        Assert.NotNull(exception.InnerException);
+        Assert.Equal(gstin, logger.FailedGstin);
     }
 
     private static string BuildValidGstin(string prefix)
@@ -81,6 +105,47 @@ public sealed class GstLookupServiceTests
                 Gstin = gstin,
                 LegalName = "Fake Taxpayer"
             });
+        }
+    }
+
+    private sealed class ThrowingProvider : IGstApiProvider
+    {
+        public string Name => "government";
+
+        public Task<GstTaxPayer> GetTaxPayerAsync(string gstin, CancellationToken cancellationToken)
+        {
+            throw new GstApiException(Name, "Provider failure.", 500, true);
+        }
+    }
+
+    private sealed class FakeLookupLogger : IGstLookupLogger
+    {
+        public string? StartedGstin { get; private set; }
+
+        public string? ValidationFailedGstin { get; private set; }
+
+        public string? SuccessProviderName { get; private set; }
+
+        public string? FailedGstin { get; private set; }
+
+        public void LookupStarted(string gstin)
+        {
+            StartedGstin = gstin;
+        }
+
+        public void ValidationFailed(string gstin, string error)
+        {
+            ValidationFailedGstin = gstin;
+        }
+
+        public void LookupSucceeded(string gstin, string providerName)
+        {
+            SuccessProviderName = providerName;
+        }
+
+        public void LookupFailed(string gstin, Exception exception)
+        {
+            FailedGstin = gstin;
         }
     }
 }

@@ -30,10 +30,10 @@ public sealed class GstApiProviderResolver : IGstApiProviderResolver
     public IGstApiProvider Resolve()
     {
         var providers = _serviceProvider.GetService(typeof(IEnumerable<IGstApiProvider>)) as IEnumerable<IGstApiProvider>;
-        var provider = TryResolveProvider(_options.Value.ProviderType, providers);
+        var provider = TryResolveProvider(_options.Value.Provider, providers);
         if (provider == null)
         {
-            throw new InvalidOperationException($"No GST API provider is registered for '{_options.Value.ProviderType}'.");
+            throw new InvalidOperationException($"No GST API provider is registered for '{_options.Value.Provider}'.");
         }
 
         return provider;

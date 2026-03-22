@@ -4,6 +4,7 @@ using BuildGST.Abstractions.Interfaces;
 using BuildGST.Abstractions.Models;
 using BuildGST.Http.Providers;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace BuildGST.DependencyInjection;
 
@@ -43,8 +44,9 @@ public static class GovernmentGstServiceCollectionExtensions
         configureRetry?.Invoke(retryOptions);
 
         services.AddSingleton(options);
+        services.AddSingleton<IOptions<GstApiProviderOptions>>(Options.Create(options));
         services.AddSingleton(retryOptions);
-        services.AddSingleton<IGstApiProvider>(serviceProvider =>
+        services.AddSingleton<GovernmentGstProvider>(serviceProvider =>
         {
             var httpClient = httpClientFactory?.Invoke(serviceProvider) ?? new HttpClient();
             return new GovernmentGstProvider(
@@ -52,6 +54,7 @@ public static class GovernmentGstServiceCollectionExtensions
                 serviceProvider.GetRequiredService<GstApiProviderOptions>(),
                 serviceProvider.GetRequiredService<GstApiRetryOptions>());
         });
+        services.AddSingleton<IGstApiProvider>(serviceProvider => serviceProvider.GetRequiredService<GovernmentGstProvider>());
 
         return services;
     }

@@ -32,7 +32,7 @@ public sealed class GstLookupService : IGstLookupService
 
         request.Gstin = Validation.GstinValidator.Normalize(request.Gstin);
 
-        var provider = _providerResolver.Resolve(request.ProviderName);
+        var provider = _providerResolver.Resolve();
         var taxPayer = await provider.GetTaxPayerAsync(request.Gstin, cancellationToken).ConfigureAwait(false);
         return new GstLookupResponse
         {

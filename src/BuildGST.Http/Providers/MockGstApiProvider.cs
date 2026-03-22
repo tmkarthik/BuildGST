@@ -24,7 +24,7 @@ public sealed class MockGstApiProvider : IGstApiProvider
     }
 
     /// <inheritdoc />
-    public string Name => "mock";
+    public string Name => "sandbox";
 
     /// <inheritdoc />
     public Task<GstTaxPayer> GetTaxPayerAsync(string gstin, CancellationToken cancellationToken)

@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using BuildGST.Abstractions.Interfaces;
 using BuildGST.Abstractions.Models;
 using BuildGST.Core.Services;
 using BuildGST.Core.Validation;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace BuildGST.Core.Tests;
@@ -15,8 +17,8 @@ public sealed class GstLookupServiceTests
     public async Task LookupAsync_ShouldNormalizeGstinAndUseResolvedProvider()
     {
         var provider = new FakeProvider();
-        var options = new GstApiProviderOptions { DefaultProvider = provider.Name };
-        var resolver = new GstApiProviderResolver(new[] { provider }, options);
+        var options = Options.Create(new GstApiProviderOptions { ProviderType = ProviderType.Government });
+        var resolver = new GstApiProviderResolver(new StubServiceProvider(new[] { provider }), options);
         var service = new GstLookupService(new GstinValidator(), resolver);
         var gstin = BuildValidGstin("27ABCDE1234F1Z");
 
@@ -32,8 +34,8 @@ public sealed class GstLookupServiceTests
     public async Task LookupAsync_ShouldRejectInvalidGstinBeforeCallingProvider()
     {
         var provider = new FakeProvider();
-        var options = new GstApiProviderOptions { DefaultProvider = provider.Name };
-        var resolver = new GstApiProviderResolver(new[] { provider }, options);
+        var options = Options.Create(new GstApiProviderOptions { ProviderType = ProviderType.Government });
+        var resolver = new GstApiProviderResolver(new StubServiceProvider(new[] { provider }), options);
         var service = new GstLookupService(new GstinValidator(), resolver);
 
         await Assert.ThrowsAsync<ArgumentException>(() => service.LookupAsync(new GstLookupRequest { Gstin = "INVALID" }));
@@ -45,9 +47,29 @@ public sealed class GstLookupServiceTests
         return prefix + GstinValidator.CalculateChecksum(prefix);
     }
 
+    private sealed class StubServiceProvider : IServiceProvider
+    {
+        private readonly IEnumerable<IGstApiProvider> _providers;
+
+        public StubServiceProvider(IEnumerable<IGstApiProvider> providers)
+        {
+            _providers = providers;
+        }
+
+        public object? GetService(Type serviceType)
+        {
+            if (serviceType == typeof(IEnumerable<IGstApiProvider>))
+            {
+                return _providers;
+            }
+
+            return null;
+        }
+    }
+
     private sealed class FakeProvider : IGstApiProvider
     {
-        public string Name => "fake";
+        public string Name => "government";
 
         public string? LastSeenGstin { get; private set; }
 

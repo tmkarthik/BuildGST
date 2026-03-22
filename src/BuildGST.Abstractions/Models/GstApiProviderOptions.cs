@@ -2,7 +2,7 @@ namespace BuildGST.Abstractions.Models;
 
 public sealed class GstApiProviderOptions
 {
-    public string DefaultProvider { get; set; } = "configurable-http";
+    public ProviderType ProviderType { get; set; } = ProviderType.ThirdParty;
 
     public string BaseUrl { get; set; } = string.Empty;
 

@@ -6,6 +6,7 @@ using BuildGST.Core.Services;
 using BuildGST.Core.Validation;
 using BuildGST.Http.Providers;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace BuildGST.DependencyInjection;
 
@@ -26,12 +27,13 @@ public static class BuildGstServiceCollectionExtensions
         var retryOptions = new GstApiRetryOptions();
 
         services.AddSingleton(options);
+        services.AddSingleton<IOptions<GstApiProviderOptions>>(Options.Create(options));
         services.AddSingleton(retryOptions);
         services.AddSingleton<IGstinValidator, GstinValidator>();
         services.AddSingleton<IGstApiProviderResolver, GstApiProviderResolver>();
         services.AddTransient<IGstLookupService, GstLookupService>();
         services.AddTransient<IEInvoiceJsonGenerator, EInvoiceJsonGenerator>();
-        services.AddSingleton<IGstApiProvider>(serviceProvider =>
+        services.AddSingleton<ThirdPartyGstApiProvider>(serviceProvider =>
         {
             var httpClient = httpClientFactory?.Invoke(serviceProvider) ?? CreateDefaultHttpClient(serviceProvider.GetRequiredService<GstApiProviderOptions>());
             return new ThirdPartyGstApiProvider(
@@ -39,6 +41,7 @@ public static class BuildGstServiceCollectionExtensions
                 serviceProvider.GetRequiredService<GstApiProviderOptions>(),
                 serviceProvider.GetRequiredService<GstApiRetryOptions>());
         });
+        services.AddSingleton<IGstApiProvider>(serviceProvider => serviceProvider.GetRequiredService<ThirdPartyGstApiProvider>());
 
         return services;
     }
